@@ -15,6 +15,9 @@ enum class PageType : uint8_t
     BTreeLeaf = 2
 };
 
+/*
+* TODO: Größe anpassen
+*/
 static const uint64_t pageSize = 256U;
 
 struct OptLock
@@ -74,6 +77,10 @@ struct OptLock
     void writeUnlockObsolete() { typeVersionLockObsolete.fetch_add(0b11); }
 };
 
+/*
+* virtuelle Destruktoren
+*  
+*/
 struct NodeBase : public OptLock
 {
     PageType type;
@@ -99,6 +106,9 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
 
     static const uint64_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(Payload));
 
+    /*
+    * TODO: Reihenfolge potenziell ändern (BTreeInnerBase auch)
+    */
     Key keys[maxEntries];
     Payload payloads[maxEntries];
 
@@ -114,6 +124,9 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
 
     unsigned lowerBound(Key k)
     {
+        /*
+        * TODO: Branchless. lineare Suche mit SIMD, for bzw do-while Schleife. 
+        */
         unsigned lower = 0;
         unsigned upper = count;
         do
@@ -162,6 +175,9 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
 
     BTreeLeaf *split(Key &sep)
     {
+        /*
+        *TODO: Im ganzen Code wird für neue Knoten new verwendet
+        */
         BTreeLeaf *newLeaf = new BTreeLeaf();
         newLeaf->count = count - (count / 2);
         count = count - newLeaf->count;
@@ -182,6 +198,10 @@ struct BTreeInnerBase : public NodeBase
 template <class Key> struct BTreeInner : public BTreeInnerBase
 {
     static const uint64_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase *));
+    
+    /*
+    * TODO: Reihenfolge potenziell ändern (BTreeLeafBase auch)
+    */
     NodeBase *children[maxEntries];
     Key keys[maxEntries];
 
@@ -229,6 +249,9 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 
     BTreeInner *split(Key &sep)
     {
+        /*
+        *TODO: Im ganzen Code wird für neue Knoten new verwendet
+        */
         BTreeInner *newInner = new BTreeInner();
         newInner->count = count - (count / 2);
         count = count - newInner->count - 1;
@@ -309,6 +332,10 @@ template <class Key, class Value> struct BTree
         BTreeInner<Key> *parent = nullptr;
         uint64_t versionParent;
 
+        /*
+        * TODO: pointer angucken, ein pointer auf ein anderes Pointer zeigt.
+        * Bei jedem Schritt wird children[] dereferenziert.
+        */
         while (node->type == PageType::BTreeInner)
         {
             auto inner = static_cast<BTreeInner<Key> *>(node);
