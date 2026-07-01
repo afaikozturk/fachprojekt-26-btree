@@ -19,6 +19,9 @@ enum class PageType : uint8_t
 * TODO: Größe anpassen
 */
 static const uint64_t pageSize = 256U;
+//mögliche änderungen
+//static const uint64_t pageSize = 4096U; 
+//verschiedene Größen müssen getestet werden
 
 struct OptLock
 {
@@ -204,6 +207,9 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
     */
     NodeBase *children[maxEntries];
     Key keys[maxEntries];
+    //als Änderung
+    //Key keys[maxEntries];
+    //NodeBase *children[maxEntries];
 
     BTreeInner()
     {
