@@ -4,8 +4,11 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <new>
 #include <sched.h>
 #include <builtin.h>
+//extra für malloc und free
+#include <cstdlib>
 
 namespace btreeolc {
 
@@ -78,6 +81,31 @@ struct OptLock
     }
 
     void writeUnlockObsolete() { typeVersionLockObsolete.fetch_add(0b11); }
+};
+
+// Neue Klasse um die Speicher alokierung zu ändern
+class NodePool 
+{
+    char* buffer;
+    size_t capacity;
+    size_t nodeSize;
+    std::atomic<size_t> nextFree{0};
+
+    public:
+    NodePool(size_t numNodes, size_t nodeSize)
+        : capacity(numNodes), nodeSize(nodeSize)
+    {
+        this->buffer = static_cast<char*>(std::malloc(numNodes * nodeSize));
+    }
+
+    ~NodePool() { std::free(buffer); }
+
+    void* allocate()
+    {
+        size_t index = nextFree.fetch_add(1);
+        assert(index < capacity && "NodePool exhausted");
+        return buffer + index * nodeSize;
+    }
 };
 
 /*
@@ -176,12 +204,18 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
         count++;
     }
 
-    BTreeLeaf *split(Key &sep)
+    BTreeLeaf *split(NodePool &poolLeaf, Key &sep)
     {
-        /*
+         /*
         *TODO: Im ganzen Code wird für neue Knoten new verwendet
         */
-        BTreeLeaf *newLeaf = new BTreeLeaf();
+        //Alt
+        //BTreeLeaf *newLeaf = new BTreeLeaf();
+
+        //Neu
+        void *mem = poolLeaf.allocate();
+        BTreeLeaf *newLeaf = new (mem) BTreeLeaf();
+
         newLeaf->count = count - (count / 2);
         count = count - newLeaf->count;
         memcpy(newLeaf->keys, keys + count, sizeof(Key) * newLeaf->count);
@@ -217,8 +251,11 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
         type = typeMarker;
     }
 
-    virtual ~BTreeInner()
-    {
+    // Kinder liegen im NodePool und werden dort in einem Rutsch freigegeben,
+    // daher hier kein delete auf die einzelnen Knoten mehr.
+
+    //Alt
+    /* {
         for (auto i = 0u; i < count; i++)
         {
             if (children[i] != nullptr)
@@ -226,7 +263,9 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
                 delete children[i];
             }
         }
-    }
+    } */
+
+    virtual ~BTreeInner() = default;
 
     bool isFull() { return count == (maxEntries - 1); };
 
@@ -253,12 +292,15 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
         return lower;
     }
 
-    BTreeInner *split(Key &sep)
+    BTreeInner *split(NodePool &poolInner, Key &sep)
     {
-        /*
-        *TODO: Im ganzen Code wird für neue Knoten new verwendet
-        */
-        BTreeInner *newInner = new BTreeInner();
+        //Alt
+        //BTreeInner *newInner = new BTreeInner();
+        
+        //Neu
+        void* mem = poolInner.allocate();
+        BTreeInner *newInner = new (mem) BTreeInner();
+
         newInner->count = count - (count / 2);
         count = count - newInner->count - 1;
         sep = keys[count];
@@ -282,11 +324,27 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 
 template <class Key, class Value> struct BTree
 {
+    NodePool poolInner;
+    NodePool poolLeaf;
+
     std::atomic<NodeBase *> root;
 
-    BTree() { root = new BTreeLeaf<Key, Value>(); }
+    BTree() : poolInner(10000000 / BTreeInner<Key>::maxEntries, sizeof(BTreeInner<Key>)),
+              poolLeaf(10000000 / BTreeLeaf<Key, Value>::maxEntries, sizeof(BTreeLeaf<Key, Value>))
+    {
+        void *mem = poolLeaf.allocate();
+        root = new (mem) BTreeLeaf<Key, Value>();
+    }
 
-    ~BTree() { delete root.load(); }
+    // Knoten liegen im NodePool, der beim Zerstören von poolInner/poolLeaf
+    // (Member-Destruktoren) den kompletten Buffer freigibt.
+
+    //Alt
+    //BTree() { root = new BTreeLeaf<Key, Value>(); }
+    //~BTree() { delete root.load(); }
+
+
+    ~BTree() = default;
 
     std::size_t height()
     {
@@ -304,7 +362,13 @@ template <class Key, class Value> struct BTree
 
     void makeRoot(Key k, NodeBase *leftChild, NodeBase *rightChild)
     {
-        auto inner = new BTreeInner<Key>();
+        //Alt
+        //auto inner = new BTreeInner<Key>();
+
+        //Neu
+        void *mem = poolInner.allocate();
+        auto inner = new (mem) BTreeInner<Key>();
+
         inner->count = 1;
         inner->keys[0] = k;
         inner->children[0] = leftChild;
@@ -370,7 +434,11 @@ template <class Key, class Value> struct BTree
                 }
                 // Split
                 Key sep;
-                BTreeInner<Key> *newInner = inner->split(sep);
+                //Alt
+                // BTreeInner<Key> *newInner = inner->split(sep);
+
+                //Neu
+                BTreeInner<Key> *newInner = inner->split(poolInner, sep);
                 if (parent)
                     parent->insert(sep, newInner);
                 else
@@ -427,7 +495,11 @@ template <class Key, class Value> struct BTree
             }
             // Split
             Key sep;
-            BTreeLeaf<Key, Value> *newLeaf = leaf->split(sep);
+            //Alt
+            //BTreeLeaf<Key, Value> *newLeaf = leaf->split(sep);
+            
+            //Neu
+            BTreeLeaf<Key, Value> *newLeaf = leaf->split(poolLeaf, sep);
             if (parent)
                 parent->insert(sep, newLeaf);
             else

@@ -28,3 +28,23 @@ The order of the flags is irrelevant, but the benchmark folder has to be the fir
 ### Activate Performance Counter
 
     sysctl -w kernel.perf_event_paranoid=-1
+
+
+
+## Anpassungen im Code
+
+### Änderungen an der Page größe
+
+Größe von `static const uint64_t pageSize = 256U;` auf 4096U geändert.
+Änderung in Performance: //hier dann Ergebnisse vergleichen ohne änderung und dann mit
+
+### Änderungen an der Reihenfolge von Attributen in Nodes
+
+`NodeBase *children[maxEntries];` und `Key keys[maxEntries];` wurden in `template <class Key> struct BTreeInner : public BTreeInnerBase` vertauscht.
+Änderung in Performance: //hier dann Ergebnisse vergleichen ohne änderung und dann mit
+
+### Änderungen mit Speicherallozierung
+Es wurden alle new und deletes Entfernt. Dafür wird jetzt am Anfang der gesammte nötige Speicher angesetzt mit NodePool. Die einzelnen Nodes werden dann nacheinander in dem Pool gepackt und beim Löschen bleibt der Speicher erhalten und ganz am ende wird der ganz Pool freigegeben. 
+Dazu wurden einige Aufrufe auf die Pool angepasst. 
+Es muss die größe des Pool anbgepasst werden/auf das Benchmark passend gemacht werden. Aktuell nur auf das jetzige hardgecoded.
+Änderung in Performance: //hier dann Ergebnisse vergleichen ohne änderung und dann mit
