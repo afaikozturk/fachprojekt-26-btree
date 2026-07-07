@@ -21,9 +21,9 @@ enum class PageType : uint8_t
 /*
 * TODO: Größe anpassen
 */
-static const uint64_t pageSize = 256U;
+//static const uint64_t pageSize = 256U;
 //mögliche änderungen
-//static const uint64_t pageSize = 4096U; 
+static const uint64_t pageSize = 8192U; 
 //verschiedene Größen müssen getestet werden
 
 struct OptLock
@@ -138,10 +138,12 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
     static const uint64_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(Payload));
 
     /*
-    * TODO: Reihenfolge potenziell ändern (BTreeInnerBase auch)
+    * Reihenfolge potenziell ändern (BTreeInnerBase auch)
+    * Hat nichts gebracht
     */
     Key keys[maxEntries];
     Payload payloads[maxEntries];
+    
 
     BTreeLeaf()
     {
@@ -236,14 +238,12 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 {
     static const uint64_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase *));
     
-    /*
-    * TODO: Reihenfolge potenziell ändern (BTreeLeafBase auch)
-    */
     NodeBase *children[maxEntries];
     Key keys[maxEntries];
     //als Änderung
     //Key keys[maxEntries];
     //NodeBase *children[maxEntries];
+    //hat nichts gebracht
 
     BTreeInner()
     {
