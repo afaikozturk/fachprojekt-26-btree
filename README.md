@@ -53,5 +53,8 @@ Es muss die größe des Pool anbgepasst werden/auf das Benchmark passend gemacht
 
 Änderung in Performance: -0.7 sek und -1 sek; Instruktion: -7,6% und etwas mehr; cycles: -17,11% und -26,9%; Stall: -20,8% und -32,2%
 
+### Änderung mit Multithreading
+Die Änderungen sind in der Benchmark ausführung
+
 ## Virtuel Enviroment für Plot
 $ source .venv/bin/activate

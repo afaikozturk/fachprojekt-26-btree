@@ -434,6 +434,7 @@ template <class Key, class Value> struct BTree
                 }
                 // Split
                 Key sep;
+
                 //Alt
                 // BTreeInner<Key> *newInner = inner->split(sep);
 
@@ -495,6 +496,7 @@ template <class Key, class Value> struct BTree
             }
             // Split
             Key sep;
+            
             //Alt
             //BTreeLeaf<Key, Value> *newLeaf = leaf->split(sep);
             
