@@ -54,7 +54,13 @@ Es muss die größe des Pool anbgepasst werden/auf das Benchmark passend gemacht
 Änderung in Performance: -0.7 sek und -1 sek; Instruktion: -7,6% und etwas mehr; cycles: -17,11% und -26,9%; Stall: -20,8% und -32,2%
 
 ### Änderung mit Multithreading
-Die Änderungen sind in der Benchmark ausführung
+Die Änderungen sind in der Benchmark ausführung.
+
+`excecute_single_run` wurde überarbeitet, indem threads erstellt werden und jeder dann nur einen jeweiligen Teil der Arbeit ausführt. Dafür gibt es noch zwei extra Hilfsmethoden je eine pro phase.
+
+Aktuell nur mit build erfolgreich durchlaufen, rest erst bei der nächsten Sitzung testbar.
+
+Änderungen in Performance: //hier dann Ergebnisse vergleichen ohne änderung und dann mit
 
 ## Virtuel Enviroment für Plot
 $ source .venv/bin/activate
