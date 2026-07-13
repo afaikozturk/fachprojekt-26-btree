@@ -329,8 +329,8 @@ template <class Key, class Value> struct BTree
 
     std::atomic<NodeBase *> root;
 
-    BTree() : poolInner(10000000 / BTreeInner<Key>::maxEntries, sizeof(BTreeInner<Key>)),
-              poolLeaf(10000000 / BTreeLeaf<Key, Value>::maxEntries, sizeof(BTreeLeaf<Key, Value>))
+    BTree() : poolInner(2 * 10000000 / BTreeInner<Key>::maxEntries, sizeof(BTreeInner<Key>)),
+              poolLeaf(2 * 10000000 / BTreeLeaf<Key, Value>::maxEntries, sizeof(BTreeLeaf<Key, Value>))
     {
         void *mem = poolLeaf.allocate();
         root = new (mem) BTreeLeaf<Key, Value>();
