@@ -144,7 +144,11 @@ public:
         {
             /// Initialize the counter
             auto counters = perf::CounterDefinition{"../../src/benchmark/perf_list.csv"};
-            auto event_counter = perf::EventCounter{ counters };
+            //extra config für das mulitthreading, damit auch alles mit gezählt wird
+            auto config = perf::Config{};
+            config.include_child_threads(true);
+            
+            auto event_counter = perf::EventCounter{ counters, config };
 
             /// Specify hardware events to count
             event_counter.add({"seconds", "instructions", "cycles", "CYCLE_ACTIVITY.STALLS_TOTAL"});
