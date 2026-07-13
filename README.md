@@ -62,5 +62,7 @@ Aktuell nur mit build erfolgreich durchlaufen, rest erst bei der nächsten Sitzu
 
 Änderungen in Performance: //hier dann Ergebnisse vergleichen ohne änderung und dann mit
 
+Änderung beim Laptop von Maximilian: sekunden stark runter gegangen 4,2x und 5,9x schneller (perfekt bei 8 threads wäre 8x schneller), aber dafür alles andere etwas höcher. Stall z.B. hat sich proportional zu mehr cycles nicht verändert (nur bei insert mit MT etwas höcher).
+
 ## Virtuel Enviroment für Plot
 $ source .venv/bin/activate
