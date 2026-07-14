@@ -60,7 +60,7 @@ Die Änderungen sind in der Benchmark ausführung.
 
 Aktuell nur mit build erfolgreich durchlaufen, rest erst bei der nächsten Sitzung testbar.
 
-Änderungen in Performance: //hier dann Ergebnisse vergleichen ohne änderung und dann mit
+Änderungen in Performance: sek: 2,26x und 4,73x schneller, Stallanteil um 22% und 14% höcher (nicht gut). Cycles pro instruktion 2,95x und 1,5x (auch nicht gut). Noch mit cache misses und cache referneces getestet, da ist beides um ca 30% runter gegangen. Weitere nachprüfungen über genaue Ursache möglich.
 
 Änderung beim Laptop von Maximilian: sekunden stark runter gegangen 4,2x und 5,9x schneller (perfekt bei 8 threads wäre 8x schneller), aber dafür alles andere etwas höcher. Stall z.B. hat sich proportional zu mehr cycles nicht verändert (nur bei insert mit MT etwas höcher).
 

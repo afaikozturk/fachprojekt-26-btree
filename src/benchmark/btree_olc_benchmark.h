@@ -151,7 +151,9 @@ public:
             auto event_counter = perf::EventCounter{ counters, config };
 
             /// Specify hardware events to count
-            event_counter.add({"seconds", "instructions", "cycles", "CYCLE_ACTIVITY.STALLS_TOTAL"});
+            
+            event_counter.add({"seconds", "instructions", "cycles", "CYCLE_ACTIVITY.STALLS_TOTAL"})
+            //event_counter.add({"seconds", "cache-references", "cache-misses"});
 
             /// Create the btree
             this->set_up(phase::INSERT);
