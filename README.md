@@ -58,3 +58,18 @@ Die Änderungen sind in der Benchmark ausführung
 
 ## Virtuel Enviroment für Plot
 $ source .venv/bin/activate
+
+## Änderungen mit Branchless Binary Search (anstatt SIMDs)
+Mit SIMD-Befehlen hätten mehrere Daten gleichzeitig verarbeitet werden können und mit `AVX2 (__m256i)` 4 64-Bit-Schlüssel gleichzeitig verglichen werden. Da die Liste sortiert ist, zählen wir einfach, wie viele Elemente kleiner als unser Suchschlüssel ist. Sobald wir auf ein Element stoßen, das größer oder gleich ist, wissen wir den Index (`lowerbound`).
+
+Folgende Flag wurde zu CMake Datei hinzugefügt für AVX-Befehle:
+
+(alt) set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -DNDEBUG") --> 
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -DNDEBUG -march=native -mavx2")
+
+Da wir aber unser `pageSize` auf 8192 Bytes erhöht haben, hat das eine wichtige Konsequenz für unser `lowerBound`-Suche: Bei 8192 Bytes passen jetzt knapp über 510 Schlüssel in einen einzigen Knoten. 
+
+Weil wir jetzt über 512 Elemente haben, braucht selbst SIMD im schlimmsten Fall ungefähr 128 Durchläufe (512/4). Eine klassische binäre Suche braucht immer nur 9 Durchläufe ($\log_2{(512)} = 9$). Das Problem der binäre Suche war nur die `if/else` (also die Branch Misprediction)
+
+Daher die if/else Block bei der lowerBound Funktion wurde durch eine Bedingungzuweisung (Compiler nutzt CMOV (Conditional Move)-Befehle der CPU.) CPU muss dann nichts mehr vorhersagen. 
+

@@ -9,7 +9,12 @@
 #include <builtin.h>
 //extra für malloc und free
 #include <cstdlib>
-
+//extra für SIMD
+#if defined(__x86_64__)
+#include <immintrin.h>
+#endif
+#include <type_traits> //Für std::is_same_v
+pdf     
 namespace btreeolc {
 
 enum class PageType : uint8_t
@@ -23,12 +28,10 @@ enum class PageType : uint8_t
 */
 //static const uint64_t pageSize = 256U;
 //mögliche änderungen
-static const uint64_t pageSize = 8192U; 
+static const uint64_t pageSize = 1024U; 
 //verschiedene Größen müssen getestet werden
 
-struct OptLock
-{
-    std::atomic<uint64_t> typeVersionLockObsolete{0b100};
+struct OptLockpdflete{0b100};
 
     bool isLocked(uint64_t version) { return ((version & 0b10) == 0b10); }
 
@@ -160,7 +163,70 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
         /*
         * TODO: Branchless. lineare Suche mit SIMD, for bzw do-while Schleife. 
         */
+
+        // mit SIMD
+    #if defined(__AVX2__)
+        
+        if constexpr (sizeof(Key) == 8)
+        {
+            __m256i v_key = _mm256_set1_epi64x(k-1);
+
+        unsigned i = 0;
+
+        for(; i+3 < count; i += 4){
+            __m256i v_keys = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&keys[i]));
+
+            __m256i cmp = _mm256_cmpgt_epi64(v_keys, v_key);
+
+            int mask = _mm256_movemask_pd(reinterpret_cast<__m256d>(cmp));
+
+            if(mask != 0){
+               return i + __builtin_ctz(mask);
+            }
+        }
+
+        for(; i < count; i++){
+            if(keys[i] >= k) { return i; }
+        }
+        return count;
+    }
+    else
+#endif
+    {
         unsigned lower = 0;
+        unsigned upper = count;
+        do{
+            unsigned mid = ((upper-lower) / 2) + lower;
+            if(k < keys[mid]) upper = mid;
+            else if(k> keys[mid]) lower = mid +1;
+            else return mid;
+        } while (lower < upper);
+        return lower;
+    }
+
+        // mit while und CMOV
+        /*unsigned lower  = 0;
+        unsigned len = count;
+
+        while (len > 0){
+            unsigned half = len / 2;
+            unsigned mid = lower + half;
+            unsigned cmp = (keys[mid] < k);
+
+            lower = cmp ? (mid + 1) : lower;
+            len = cmp ? (len - half - 1) : half;
+        }
+        return lower;*/
+
+        //mit nur for-Schleife
+        /*unsigned pos = 0;
+        for(unsigned i = 0; i < count; i++){
+            pos += (keys[i] < k);
+        }
+        return pos;*/
+    
+        // mit if-else (base state)
+        /*unsigned lower = 0;
         unsigned upper = count;
         do
         {
@@ -178,9 +244,9 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
                 return mid;
             }
         } while (lower < upper);
-        return lower;
+        return lower; */
     }
-
+        
     void insert(Key k, Payload p)
     {
         assert(count < maxEntries);
