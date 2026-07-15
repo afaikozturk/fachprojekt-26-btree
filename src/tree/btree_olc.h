@@ -14,7 +14,7 @@
 #include <immintrin.h>
 #endif
 #include <type_traits> //Für std::is_same_v
-pdf     
+     
 namespace btreeolc {
 
 enum class PageType : uint8_t
