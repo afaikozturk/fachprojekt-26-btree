@@ -14,7 +14,7 @@
 #include <immintrin.h>
 #endif
 #include <type_traits> //Für std::is_same_v
-pdf     
+
 namespace btreeolc {
 
 enum class PageType : uint8_t
@@ -28,10 +28,12 @@ enum class PageType : uint8_t
 */
 //static const uint64_t pageSize = 256U;
 //mögliche änderungen
-static const uint64_t pageSize = 1024U; 
+static const uint64_t pageSize = 2048U; 
 //verschiedene Größen müssen getestet werden
 
-struct OptLockpdflete{0b100};
+struct OptLock
+{
+    std::atomic<uint64_t> typeVersionLockObsolete{0b100};
 
     bool isLocked(uint64_t version) { return ((version & 0b10) == 0b10); }
 
@@ -161,7 +163,7 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
     unsigned lowerBound(Key k)
     {
         /*
-        * TODO: Branchless. lineare Suche mit SIMD, for bzw do-while Schleife. 
+        * TODO: lineare Suche mit SIMD, do-while Schleife für Fallback. 
         */
 
         // mit SIMD
@@ -173,16 +175,19 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
 
         unsigned i = 0;
 
-        for(; i+3 < count; i += 4){
-            __m256i v_keys = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&keys[i]));
+        // unrolled loop: 8 Keys (2 x 256-Bit Vektoren) pro Durchlauf
+        for(; i+7 < count; i += 8){
+            __m256i v_keys1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&keys[i]));
+            __m256i v_keys2 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&keys[i + 4]));
 
-            __m256i cmp = _mm256_cmpgt_epi64(v_keys, v_key);
+            __m256i cmp1 = _mm256_cmpgt_epi64(v_keys1, v_key);
+            __m256i cmp2 = _mm256_cmpgt_epi64(v_keys2, v_key);
 
-            int mask = _mm256_movemask_pd(reinterpret_cast<__m256d>(cmp));
+            int mask1 = _mm256_movemask_pd(reinterpret_cast<__m256d>(cmp1));
+            int mask2 = _mm256_movemask_pd(reinterpret_cast<__m256d>(cmp2));
 
-            if(mask != 0){
-               return i + __builtin_ctz(mask);
-            }
+            if(mask1 != 0) return i + __builtin_ctz(mask1);
+            if(mask2 != 0) return i + 4 + __builtin_ctz(mask2);
         }
 
         for(; i < count; i++){
@@ -204,47 +209,6 @@ template <class Key, class Payload> struct BTreeLeaf : public BTreeLeafBase
         return lower;
     }
 
-        // mit while und CMOV
-        /*unsigned lower  = 0;
-        unsigned len = count;
-
-        while (len > 0){
-            unsigned half = len / 2;
-            unsigned mid = lower + half;
-            unsigned cmp = (keys[mid] < k);
-
-            lower = cmp ? (mid + 1) : lower;
-            len = cmp ? (len - half - 1) : half;
-        }
-        return lower;*/
-
-        //mit nur for-Schleife
-        /*unsigned pos = 0;
-        for(unsigned i = 0; i < count; i++){
-            pos += (keys[i] < k);
-        }
-        return pos;*/
-    
-        // mit if-else (base state)
-        /*unsigned lower = 0;
-        unsigned upper = count;
-        do
-        {
-            unsigned mid = ((upper - lower) / 2) + lower;
-            if (k < keys[mid])
-            {
-                upper = mid;
-            }
-            else if (k > keys[mid])
-            {
-                lower = mid + 1;
-            }
-            else
-            {
-                return mid;
-            }
-        } while (lower < upper);
-        return lower; */
     }
         
     void insert(Key k, Payload p)
@@ -304,12 +268,12 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 {
     static const uint64_t maxEntries = (pageSize - sizeof(NodeBase)) / (sizeof(Key) + sizeof(NodeBase *));
     
-    NodeBase *children[maxEntries];
-    Key keys[maxEntries];
-    //als Änderung
-    //Key keys[maxEntries];
     //NodeBase *children[maxEntries];
-    //hat nichts gebracht
+    //Key keys[maxEntries];
+    //als Änderung
+    Key keys[maxEntries];
+    NodeBase *children[maxEntries];
+    //Nach SIMD und Prefetching hat doch was gebracht 
 
     BTreeInner()
     {
@@ -337,25 +301,53 @@ template <class Key> struct BTreeInner : public BTreeInnerBase
 
     unsigned lowerBound(Key k)
     {
+        /*
+        * TODO: lineare Suche mit SIMD, do-while Schleife für Fallback.
+        */
+
+        // mit SIMD
+    #if defined(__AVX2__)
+        
+        if constexpr (sizeof(Key) == 8)
+        {
+            __m256i v_key = _mm256_set1_epi64x(k-1);
+
+        unsigned i = 0;
+
+        // unrolled loop: 8 Keys (2 x 256-Bit Vektoren) pro Durchlauf
+        for(; i+7 < count; i += 8){
+            __m256i v_keys1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&keys[i]));
+            __m256i v_keys2 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&keys[i + 4]));
+
+            __m256i cmp1 = _mm256_cmpgt_epi64(v_keys1, v_key);
+            __m256i cmp2 = _mm256_cmpgt_epi64(v_keys2, v_key);
+
+            int mask1 = _mm256_movemask_pd(reinterpret_cast<__m256d>(cmp1));
+            int mask2 = _mm256_movemask_pd(reinterpret_cast<__m256d>(cmp2));
+
+            if(mask1 != 0) return i + __builtin_ctz(mask1);
+            if(mask2 != 0) return i + 4 + __builtin_ctz(mask2);
+        }
+
+        for(; i < count; i++){
+            if(keys[i] >= k) { return i; }
+        }
+        return count;
+    }
+    else
+#endif
+    {
         unsigned lower = 0;
         unsigned upper = count;
-        do
-        {
-            unsigned mid = ((upper - lower) / 2) + lower;
-            if (k < keys[mid])
-            {
-                upper = mid;
-            }
-            else if (k > keys[mid])
-            {
-                lower = mid + 1;
-            }
-            else
-            {
-                return mid;
-            }
+        do{
+            unsigned mid = ((upper-lower) / 2) + lower;
+            if(k < keys[mid]) upper = mid;
+            else if(k> keys[mid]) lower = mid +1;
+            else return mid;
         } while (lower < upper);
         return lower;
+    }
+
     }
 
     BTreeInner *split(NodePool &poolInner, Key &sep)
@@ -524,10 +516,15 @@ template <class Key, class Value> struct BTree
                     goto restart;
             }
 
+            // TODO Prefetch insert
             parent = inner;
             versionParent = versionNode;
-
             node = inner->children[inner->lowerBound(k)];
+
+            // prefetch Lade den nächsten Knoten in den Cache
+            // 0 = read, 3 = high temporal locality (sofortiger Zugriff)
+            __builtin_prefetch(node, 0, 3);
+
             inner->checkOrRestart(versionNode, needRestart);
             if (needRestart)
                 goto restart;
@@ -626,11 +623,17 @@ template <class Key, class Value> struct BTree
                 if (needRestart)
                     goto restart;
             }
-
+            
+            // TODO Prefetch lookup
             parent = inner;
             versionParent = versionNode;
 
             node = inner->children[inner->lowerBound(k)];
+            
+            // prefetch Lade den nächsten Knoten in den Cache
+            // 0 = read, 3 = high temporal locality (sofortiger Zugriff)
+            __builtin_prefetch(node, 0, 3);
+
             inner->checkOrRestart(versionNode, needRestart);
             if (needRestart)
                 goto restart;
@@ -688,10 +691,16 @@ template <class Key, class Value> struct BTree
                     goto restart;
             }
 
+            // TODO Prefetch scan
+
             parent = inner;
             versionParent = versionNode;
+            node = inner->children[inner->lowerBound(k)];   
+            
+            // prefetch Lade den nächsten Knoten in den Cache
+            // 0 = read, 3 = high temporal locality (sofortiger Zugriff)
+            __builtin_prefetch(node, 0, 3);
 
-            node = inner->children[inner->lowerBound(k)];
             inner->checkOrRestart(versionNode, needRestart);
             if (needRestart)
                 goto restart;

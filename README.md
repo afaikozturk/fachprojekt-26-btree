@@ -37,6 +37,8 @@ The order of the flags is irrelevant, but the benchmark folder has to be the fir
 
 Größe von `static const uint64_t pageSize = 256U;` auf 4096U geändert.
 
+(Stand 16.07) Größe von `static const uint64_t pageSize = 256U;` auf idealerweise `1024U` bzw. `2048U` geändert (Sweet Spot für SIMD).
+
 Änderung in Performance: //hier dann Ergebnisse vergleichen ohne änderung und dann mit
 
 ### Änderungen an der Reihenfolge von Attributen in Nodes
@@ -44,12 +46,13 @@ Größe von `static const uint64_t pageSize = 256U;` auf 4096U geändert.
 `NodeBase *children[maxEntries];` und `Key keys[maxEntries];` wurden in `template <class Key> struct BTreeInner : public BTreeInnerBase` vertauscht.
 
 Änderung in Performance: hat nichts gebracht, teilweise sogar schlechter.
+(Stand 16.07) In Kombination mit SIMD und Prefetching führt diese Data-Locality (Schlüssel liegen direkt am Anfang der Cache-Line) nun aber zu einer messbaren Verbesserung.
 
 ### Änderungen mit Speicherallozierung
 Es wurden alle new und deletes Entfernt. Dafür wird jetzt am Anfang der gesammte nötige Speicher angesetzt mit NodePool. Die einzelnen Nodes werden dann nacheinander in dem Pool gepackt und beim Löschen bleibt der Speicher erhalten und ganz am ende wird der ganz Pool freigegeben. 
 Dazu wurden einige Aufrufe auf die Pool angepasst. 
 
-Es muss die größe des Pool anbgepasst werden/auf das Benchmark passend gemacht werden. Aktuell nur auf das jetzige hardgecoded.
+Es muss die größe des Pool angepasst werden/auf das Benchmark passend gemacht werden. Aktuell nur auf das jetzige hardgecoded.
 
 Änderung in Performance: -0.7 sek und -1 sek; Instruktion: -7,6% und etwas mehr; cycles: -17,11% und -26,9%; Stall: -20,8% und -32,2%
 
@@ -59,17 +62,18 @@ Die Änderungen sind in der Benchmark ausführung
 ## Virtuel Enviroment für Plot
 $ source .venv/bin/activate
 
-## Änderungen mit Branchless Binary Search (anstatt SIMDs)
-Mit SIMD-Befehlen hätten mehrere Daten gleichzeitig verarbeitet werden können und mit `AVX2 (__m256i)` 4 64-Bit-Schlüssel gleichzeitig verglichen werden. Da die Liste sortiert ist, zählen wir einfach, wie viele Elemente kleiner als unser Suchschlüssel ist. Sobald wir auf ein Element stoßen, das größer oder gleich ist, wissen wir den Index (`lowerbound`).
+## Änderungen mit SIMD Linearsuche
+
+Anstatt einer Standard-Binärsuche nutzen wir in der `lowerBound`-Funktion (sowohl für `BTreeLeaf` als auch für `BTreeInner`) nun eine vektorisierte lineare Suche mit SIMD-Befehlen (AVX2). Durch **Loop Unrolling** vergleichen wir 8 64-Bit-Schlüssel gleichzeitig (mittels zweier `__m256i` Vektoren). Mit `_mm256_movemask_pd` und `__builtin_ctz` finden wir den Index ohne teure Branch-Mispredictions. Als Fallback dient weiterhin eine klassische do-while-Binärsuche.
 
 Folgende Flag wurde zu CMake Datei hinzugefügt für AVX-Befehle:
 
-(alt) set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -DNDEBUG") --> 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -DNDEBUG -march=native -mavx2")
+(alt) `set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -DNDEBUG")` -->
+(neu) `set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -DNDEBUG -march=native -mavx2")`
 
-Da wir aber unser `pageSize` auf 8192 Bytes erhöht haben, hat das eine wichtige Konsequenz für unser `lowerBound`-Suche: Bei 8192 Bytes passen jetzt knapp über 510 Schlüssel in einen einzigen Knoten. 
+Die Linearsuche verliert bei zu großen Knoten an Effizienz. Bei 8192 Bytes bräuchte SIMD im schlimmsten Fall über 64 Durchläufe. Daher wurde die `pageSize` auf den Sweet Spot von 1024U bzw. 2048U angepasst. So passt der Knoten optimal in den L1-Cache und lässt sich in wenigen Taktzyklen durchsuchen.
 
-Weil wir jetzt über 512 Elemente haben, braucht selbst SIMD im schlimmsten Fall ungefähr 128 Durchläufe (512/4). Eine klassische binäre Suche braucht immer nur 9 Durchläufe ($\log_2{(512)} = 9$). Das Problem der binäre Suche war nur die `if/else` (also die Branch Misprediction)
+## Memory Latency Hiding durch Prefetching
 
-Daher die if/else Block bei der lowerBound Funktion wurde durch eine Bedingungzuweisung (Compiler nutzt CMOV (Conditional Move)-Befehle der CPU.) CPU muss dann nichts mehr vorhersagen. 
-
+Um Memory Stalls durch Cache-Misses ("Pointer Chasing") zu reduzieren, wurde Software-Prefetching (`__builtin_prefetch(node, 0, 3)`) in die Baumtraversierung (`lookup`, `insert`, `scan`) integriert.
+Sobald das nächste Kind ermittelt wurde, wird ein Prefetch abgesetzt. Während die CPU den Optimistic Lock des aktuellen Knotens verifiziert, wird der nächste Knoten bereits asynchron in den schnellen L1-Cache geladen.
