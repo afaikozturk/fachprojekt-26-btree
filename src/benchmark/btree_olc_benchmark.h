@@ -152,7 +152,7 @@ public:
 
             /// Specify hardware events to count
             
-            event_counter.add({"seconds", "instructions", "cycles", "CYCLE_ACTIVITY.STALLS_TOTAL"})
+            event_counter.add({"seconds", "instructions", "cycles", "CYCLE_ACTIVITY.STALLS_TOTAL"});
             //event_counter.add({"seconds", "cache-references", "cache-misses"});
 
             /// Create the btree
