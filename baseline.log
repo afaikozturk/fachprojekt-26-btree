@@ -43,5 +43,5 @@
 Generaring YCSB workload workloada with key type randint
 Built target ycsb
 Workload: insert phase: 10000000 inserts / mixed phase: 10000000 requests
-Insert phase[0]: seconds: 4.27383 | instructions: 6.82132e+09 | cycles: 1.69702e+10 | CYCLE_ACTIVITY.STALLS_TOTAL: 1.2094e+10 | 
-Lookup phase[0]: seconds: 4.17461 | instructions: 4.79865e+09 | cycles: 1.74092e+10 | CYCLE_ACTIVITY.STALLS_TOTAL: 1.37502e+10 | 
+Insert phase[0]: seconds: 3.65775 | instructions: 6.39648e+09 | cycles: 1.65738e+10 | CYCLE_ACTIVITY.STALLS_TOTAL: 1.19133e+10 | 
+Lookup phase[0]: seconds: 3.71282 | instructions: 4.77733e+09 | cycles: 1.69032e+10 | CYCLE_ACTIVITY.STALLS_TOTAL: 1.34127e+10 | 

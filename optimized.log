@@ -1,18 +1,23 @@
--- Configuring done (0.0s)
--- Generating done (0.0s)
--- Build files have been written to: /home/afaik/fachprojekt-26-btree/build
+-- Configuring done (0.4s)
+-- Generating done (0.2s)
+-- Build files have been written to: /home/ls12/fpsc26-08/fachprojekt-26-btree/build
+-- Configuring done (0.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ls12/fpsc26-08/fachprojekt-26-btree/build
 [  3%] Performing update step for 'argparse-external'
+-- Already at requested tag: v2.9
 [  7%] No patch step for 'argparse-external'
 [ 11%] Performing configure step for 'argparse-external'
--- Configuring done (0.0s)
--- Generating done (0.0s)
--- Build files have been written to: /home/afaik/fachprojekt-26-btree/lib/argparse/src/argparse-external-build
+-- Configuring done (0.1s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ls12/fpsc26-08/fachprojekt-26-btree/lib/argparse/src/argparse-external-build
 [ 14%] Performing build step for 'argparse-external'
 [ 18%] Performing install step for 'argparse-external'
 
 [ 22%] Completed 'argparse-external'
 [ 29%] Built target argparse-external
 [ 33%] Performing update step for 'json-external'
+-- Already at requested tag: v3.11.2
 [ 37%] No patch step for 'json-external'
 [ 40%] Performing configure step for 'json-external'
 
@@ -23,25 +28,19 @@
 [ 51%] Completed 'json-external'
 [ 59%] Built target json-external
 [ 62%] Performing update step for 'perf-cpp-external'
+-- Already at requested tag: v0.9.0
 [ 66%] No patch step for 'perf-cpp-external'
 [ 70%] Performing configure step for 'perf-cpp-external'
--- Configuring done (0.0s)
--- Generating done (0.0s)
--- Build files have been written to: /home/afaik/fachprojekt-26-btree/lib/perf-cpp/src/perf-cpp-external-build
+-- Configuring done (0.1s)
+-- Generating done (0.2s)
+-- Build files have been written to: /home/ls12/fpsc26-08/fachprojekt-26-btree/lib/perf-cpp/src/perf-cpp-external-build
 [ 74%] Performing build step for 'perf-cpp-external'
 [100%] Built target perf-cpp
 [ 77%] Performing install step for 'perf-cpp-external'
 
 [ 81%] Completed 'perf-cpp-external'
 [ 88%] Built target perf-cpp-external
-[ 92%] Building CXX object CMakeFiles/b_tree.dir/src/main.cpp.o
-[ 96%] Linking CXX executable bin/b_tree
 [100%] Built target b_tree
--- Configuring done (0.0s)
--- Generating done (0.0s)
--- Build files have been written to: /home/afaik/fachprojekt-26-btree/build
-Generaring YCSB workload workloada with key type randint
-Built target ycsb
 Workload: insert phase: 10000000 inserts / mixed phase: 10000000 requests
-Insert phase[0]: seconds: 2.81906 | instructions: 6.30381e+09 | cycles: 1.10191e+10 | CYCLE_ACTIVITY.STALLS_TOTAL: 7.29994e+09 | 
-Lookup phase[0]: seconds: 2.22192 | instructions: 4.3147e+09 | cycles: 8.94008e+09 | CYCLE_ACTIVITY.STALLS_TOTAL: 6.14377e+09 | 
+Insert phase[0]: seconds: 0.709252 | instructions: 5.2509e+09 | cycles: 1.79152e+10 | CYCLE_ACTIVITY.STALLS_TOTAL: 1.31225e+10 | 
+Lookup phase[0]: seconds: 0.447407 | instructions: 4.12016e+09 | cycles: 1.41946e+10 | CYCLE_ACTIVITY.STALLS_TOTAL: 1.03996e+10 | 

@@ -65,7 +65,7 @@ public:
         if (phase == benchmark::phase::INSERT)
         {
             std::vector<std::thread> threads;
-            unsigned numThreads = 8;
+            unsigned numThreads = 6;
             auto chunkSize = totalSize / numThreads;
 
             for (unsigned t = 0; t < numThreads; t++)

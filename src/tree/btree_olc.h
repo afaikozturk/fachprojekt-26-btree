@@ -28,7 +28,7 @@ enum class PageType : uint8_t
 */
 //static const uint64_t pageSize = 256U;
 //mögliche änderungen
-static const uint64_t pageSize = 2048U; 
+static const uint64_t pageSize = 1024U; 
 //verschiedene Größen müssen getestet werden
 
 struct OptLock
