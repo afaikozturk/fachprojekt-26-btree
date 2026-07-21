@@ -52,12 +52,21 @@ Größe von `static const uint64_t pageSize = 256U;` auf 4096U geändert.
 Es wurden alle new und deletes Entfernt. Dafür wird jetzt am Anfang der gesammte nötige Speicher angesetzt mit NodePool. Die einzelnen Nodes werden dann nacheinander in dem Pool gepackt und beim Löschen bleibt der Speicher erhalten und ganz am ende wird der ganz Pool freigegeben. 
 Dazu wurden einige Aufrufe auf die Pool angepasst. 
 
+Es muss die größe des Pool anbgepasst werden/auf das Benchmark passend gemacht werden. Aktuell nur auf das jetzige hardgecoded. wurde noch einmal angepasst -> sollte insgesammt besser geschrieben werden
 Es muss die größe des Pool angepasst werden/auf das Benchmark passend gemacht werden. Aktuell nur auf das jetzige hardgecoded.
 
 Änderung in Performance: -0.7 sek und -1 sek; Instruktion: -7,6% und etwas mehr; cycles: -17,11% und -26,9%; Stall: -20,8% und -32,2%
 
 ### Änderung mit Multithreading
-Die Änderungen sind in der Benchmark ausführung
+Die Änderungen sind in der Benchmark ausführung.
+
+`excecute_single_run` wurde überarbeitet, indem threads erstellt werden und jeder dann nur einen jeweiligen Teil der Arbeit ausführt. Dafür gibt es noch zwei extra Hilfsmethoden je eine pro phase.
+
+Aktuell nur mit build erfolgreich durchlaufen, rest erst bei der nächsten Sitzung testbar.
+
+Änderungen in Performance: sek: 2,26x und 4,73x schneller, Stallanteil um 22% und 14% höcher (nicht gut). Cycles pro instruktion 2,95x und 1,5x (auch nicht gut). Noch mit cache misses und cache referneces getestet, da ist beides um ca 30% runter gegangen. Weitere nachprüfungen über genaue Ursache möglich.
+
+Änderung beim Laptop von Maximilian: sekunden stark runter gegangen 4,2x und 5,9x schneller (perfekt bei 8 threads wäre 8x schneller), aber dafür alles andere etwas höcher. Stall z.B. hat sich proportional zu mehr cycles nicht verändert (nur bei insert mit MT etwas höcher).
 
 ## Virtuel Enviroment für Plot
 $ source .venv/bin/activate
