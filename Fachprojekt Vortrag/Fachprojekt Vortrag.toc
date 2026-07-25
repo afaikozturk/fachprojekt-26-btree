@@ -1,4 +1,4 @@
 \babel@toc {ngerman}{}\relax 
 \beamer@sectionintoc {1}{Optimierungen}{3}{0}{1}
-\beamer@sectionintoc {2}{Gesamtergebnis}{18}{0}{2}
-\beamer@sectionintoc {3}{Fazit}{20}{0}{3}
+\beamer@sectionintoc {2}{Gesamtergebnis}{17}{0}{2}
+\beamer@sectionintoc {3}{Fazit}{19}{0}{3}
