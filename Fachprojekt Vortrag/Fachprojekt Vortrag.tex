@@ -1,0 +1,222 @@
+\documentclass[aspectratio=169,13pt]{beamer}
+\nonstopmode
+
+\usepackage{appendixnumberbeamer}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[ngerman]{babel}
+\usepackage[babel,german=quotes]{csquotes}
+\usepackage{xcolor}
+\usepackage{multicol}
+\input{colors}
+
+\usepackage{tikz}
+\usetikzlibrary{trees, positioning, calc, arrows.meta, overlay-beamer-styles}
+
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+
+\usetheme[progressbar=frametitle]{metropolis}
+\newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
+
+\makeatletter
+\setlength{\metropolis@progressinheadfoot@linewidth}{1,2pt}
+\makeatother
+
+\setbeamerfont{bibliography item}{size=\tiny}
+\setbeamerfont{bibliography entry author}{size=\tiny}
+\setbeamerfont{bibliography entry title}{size=\tiny}
+\setbeamerfont{bibliography entry location}{size=\tiny}
+\setbeamerfont{bibliography entry note}{size=\tiny}
+
+\title{Fachprojekt Vortrag}
+\author{Maximilian Latusek, Ahmet Faik Öztürk}
+
+
+\titlegraphic{\hfill\includegraphics[height=8mm]{tu-do-logo.pdf}}
+
+\date{28. Juli 2026}
+
+\begin{document}
+	
+	\maketitle
+	
+	\begin{frame}{Baseline}
+		\centering
+		% TODO: Grafik/Tabelle mit den unoptimierten Baseline-Werten
+		\begin{table}
+			\begin{tabular}{lcccc}
+				\toprule
+				Phase & seconds & instructions & cycles & stalls \\
+				\midrule
+				Insert & TODO & TODO & TODO & TODO \\
+				Lookup & TODO & TODO & TODO & TODO \\
+				\bottomrule
+			\end{tabular}
+		\end{table}
+	\end{frame}
+	
+	%--------------------------------------------------------------------------------------------------------------
+	%--------------------------------------------------------------------------------------------------------------
+	
+	\section{Optimierungen}
+	
+	\begin{frame}{Optimierung: Datentypen \& Reihenfolge}
+		\begin{itemize}
+			\item Bottleneck: pageSize zu klein, \\
+			Attribute in InnerBase und LeafBase unterschiedliche Reihenfolge\\
+			\vspace{0,3cm}
+			\item Änderung: größe von pageSize angepasst und Optimum herausgefunden\\
+			Reihenfolge der Attribute angepasst
+		\end{itemize}
+	\end{frame}
+	
+	% hier hatten wir keine Positiven Ergebnisse, also maybe Ergebnis auslassen und nur mündlich erwähnen
+	\begin{frame}{Ergebnis: Data Packing}
+		\centering
+		% TODO: Vorher/Nachher-Graph (idealerweise Ratio-Plot wie in plot.py)
+		%\includegraphics[width=0.75\textwidth]{TODO_data_packing.pdf}
+	\end{frame}
+	
+	%--------------------------------------------------------------------------------------------------------------
+	
+	\begin{frame}{Optimierung: Speicherverwaltung (NodePool)}
+		\begin{itemize}
+			\item Bottleneck: häufige einzelne \texttt{new}-Aufrufe beim Knoten-Split
+			$\rightarrow$ Allocator-/Syscall-Overhead, schlechte Lokalität
+			\item Änderung: vorab reservierter Speicherblock je Knotentyp,
+			Placement New statt einzelner \texttt{new}-Aufrufe
+		\end{itemize}
+	\end{frame}
+	
+	\begin{frame}{Ergebnis: Speicherverwaltung}
+		\centering
+		% TODO: Vorher/Nachher-Graph
+		%\includegraphics[width=0.75\textwidth]{TODO_nodepool.pdf}
+	\end{frame}
+	
+	%--------------------------------------------------------------------------------------------------------------
+	
+	\begin{frame}{Optimierung: Multithreading}
+		\begin{itemize}
+			\item Baum bereits für Nebenläufigkeit ausgelegt (Optimistic Lock Coupling)
+			\item Änderung: Workload wird in Abschnitte aufgeteilt, mehrere Threads
+			rufen \texttt{insert()}/\texttt{lookup()} parallel auf
+			\item Thread-Anzahl auf 8 gesetzt
+		\end{itemize}
+	\end{frame}
+	
+	\begin{frame}{Ergebnis: Multithreading -- Speedup}
+		\centering
+		\begin{table}
+			\begin{tabular}{lccc}
+				\toprule
+				Phase & Single & Multithread & Speedup \\
+				\midrule
+				Insert & TODO s & TODO s & TODO$\times$ \\
+				Lookup & TODO s & TODO s & TODO$\times$ \\
+				\bottomrule
+			\end{tabular}
+		\end{table}
+	\end{frame}
+	
+	\begin{frame}{Erkenntnis: Insert skaliert schlechter als Lookup}
+		\begin{itemize}
+			\item Insert braucht Write-Locks, Lookup nur Read-Locks
+			\item Stall-Anteil (\texttt{stalls / cycles}) steigt bei Insert deutlich
+			stärker als bei Lookup -- TODO: konkrete Prozentwerte einfügen
+			\item Erklärung: Lock-Contention am Wurzelbereich beim Baumaufbau,
+			\texttt{goto restart}-Zyklen bei konkurrierenden Schreibzugriffen
+		\end{itemize}	
+	\end{frame}
+	
+	\begin{frame}{Interessanter Nebenfund}
+		\textbf{Uni-Rechner vs. Laptop}\\
+		verschiedene Hardware macht Contention und Lokalität z.T. sichtbarer\\
+		\vspace{0,4cm}
+		\begin{tabular}{lcc}
+			\toprule
+			Gerät & Uni-Rechner (12 echte Kerne) & Laptop (Hybrid, 4P+8E) \\
+			\midrule
+			Insert Speedup & $\sim2,26\times$ & $\sim3,38\times$\\
+			Lookup Speedup & $\sim4,72\times$ & $\sim6,09\times$\\
+			Cache-Misses Rückgang & $\sim30\%$ & $\sim6-9\%$ \\
+			Stall-Anstieg & + 22,2 Punkte & +3,4 Punkte \\
+			\bottomrule
+		\end{tabular}
+	\end{frame}
+	
+	%--------------------------------------------------------------------------------------------------------------
+	
+	\begin{frame}{Optimierung: SIMD / Vectorization}
+		\begin{itemize}
+			\item Bottleneck: TODO
+			\item Änderung: TODO
+		\end{itemize}
+	\end{frame}
+	
+	\begin{frame}{Ergebnis: SIMD}
+		\centering
+		% TODO: \includegraphics[width=0.75\textwidth]{TODO_simd.pdf}
+	\end{frame}
+	
+	\begin{frame}{Optimierung: Software Prefetching}
+		\begin{itemize}
+			\item Bottleneck: TODO
+			\item Änderung: TODO (Prefetch-Distanz etc.)
+		\end{itemize}
+	\end{frame}
+	
+	\begin{frame}{Ergebnis: Prefetching}
+		\centering
+		% TODO: \includegraphics[width=0.75\textwidth]{TODO_prefetching.pdf}
+	\end{frame}
+	
+	%--------------------------------------------------------------------------------------------------------------
+	
+	\begin{frame}{Optimierung: Branchless Suche}
+		\begin{itemize}
+			\item Bottleneck: TODO (Fehlvorhersagen bei \texttt{lowerBound})
+			\item Änderung: TODO
+		\end{itemize}
+	\end{frame}
+	
+	\begin{frame}{Ergebnis: Branchless}
+		\centering
+		% TODO: \includegraphics[width=0.75\textwidth]{TODO_branchless.pdf}
+		% Falls diese Optimierung wenig/nichts gebracht hat: das ist ein
+		% gültiges, interessantes Ergebnis -- laut Aufgabenblatt ausdrücklich
+		% erwünscht ("negative Ergebnisse sind genauso relevant").
+	\end{frame}
+	
+	%--------------------------------------------------------------------------------------------------------------
+	%--------------------------------------------------------------------------------------------------------------
+	
+	\section{Gesamtergebnis}
+	
+	\begin{frame}{Baseline vs. alle Optimierungen kombiniert}
+		\centering
+		% TODO: der "Wow-Graph" -- Baseline vs. finale kombinierte Version,
+		% idealerweise logarithmische Skala (siehe Sheet 1c)
+		% TODO: \includegraphics[width=0.8\textwidth]{TODO_gesamtvergleich.pdf}
+	\end{frame}
+	
+	%--------------------------------------------------------------------------------------------------------------
+	%--------------------------------------------------------------------------------------------------------------
+	
+	\section{Fazit}
+	
+	\begin{frame}{Fazit}
+		\begin{itemize}
+			\item Größter Effekt: TODO
+			\item Überraschendster Befund: TODO (z.B. Insert- vs. Lookup-Skalierung)
+			\item Was nicht/wenig gebracht hat: TODO
+			\item Nächste Schritte, falls mehr Zeit vorhanden wäre: TODO
+		\end{itemize}
+	\end{frame}
+	
+\end{document}
+
