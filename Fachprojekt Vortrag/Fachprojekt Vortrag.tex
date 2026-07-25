@@ -110,8 +110,8 @@
 				\toprule
 				Phase & Single & Multithread & Speedup \\
 				\midrule
-				Insert & TODO s & TODO s & TODO$\times$ \\
-				Lookup & TODO s & TODO s & TODO$\times$ \\
+				Insert & 4,159 s & 1,904 s & 2,18$\times$ \\
+				Lookup & 2,771 s & 0,605 s & 4,58$\times$ \\
 				\bottomrule
 			\end{tabular}
 		\end{table}
@@ -121,7 +121,8 @@
 		\begin{itemize}
 			\item Insert braucht Write-Locks, Lookup nur Read-Locks
 			\item Stall-Anteil (\texttt{stalls / cycles}) steigt bei Insert deutlich
-			stärker als bei Lookup -- TODO: konkrete Prozentwerte einfügen
+			stärker als bei Lookup --\\
+			Insert: 87 \% vs. Lookup: 74\%
 			\item Erklärung: Lock-Contention am Wurzelbereich beim Baumaufbau,
 			\texttt{goto restart}-Zyklen bei konkurrierenden Schreibzugriffen
 		\end{itemize}	
